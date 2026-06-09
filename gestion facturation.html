@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion de Facturation Pro - Système Complet</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9edf2 100%);
+            color: #1e293b;
+            line-height: 1.5;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            width: 280px;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            color: white;
+            padding: 2rem 1.5rem;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 3rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo i {
+            font-size: 2rem;
+            color: #3b82f6;
+        }
+
+        .logo h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #fff, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-menu {
+            list-style: none;
+        }
+
+        .nav-item {
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0.875rem 1rem;
+            color: #cbd5e1;
+            text-decoration: none;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .nav-link:hover {
+            background: rgba(59, 130, 246, 0.1);
+            color: white;
+            transform: translateX(5px);
+        }
+
+        .nav-link.active {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .nav-link i {
+            width: 24px;
+            font-size: 1.2rem;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 280px;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .page-title h1 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .page-title p {
+            color: #64748b;
+            margin-top: 0.25rem;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .stat-icon i {
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+
+        /* Invoice Form */
+        .invoice-form-container {
+            background: white;
+            border-radius: 24px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .form-section {
+            margin-bottom: 2rem;
+        }
+
+        .form-section h3 {
+            font-size: 1.25rem;
+            margin-bottom: 1.5rem;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #334155;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Articles Table */
+        .articles-table-container {
+            overflow-x: auto;
+            margin-bottom: 1.5rem;
+        }
+
+        .articles-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #f8fafc;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .articles-table th {
+            padding: 1rem;
+            text-align: left;
+            background: #f1f5f9;
+            color: #475569;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .articles-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .articles-table input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.875rem;
+        }
+
+        .remove-article {
+            background: #fee2e2;
+            border: none;
+            padding: 0.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            color: #ef4444;
+            transition: all 0.3s ease;
+        }
+
+        .remove-article:hover {
+            background: #ef4444;
+            color: white;
+        }
+
+        .add-article-btn {
+            background: #f1f5f9;
+            border: 2px dashed #cbd5e1;
+            padding: 0.75rem;
+            width: 100%;
+            border-radius: 12px;
+            cursor: pointer;
+            color: #3b82f6;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .add-article-btn:hover {
+            background: #e2e8f0;
+            border-color: #3b82f6;
+        }
+
+        /* Totals Section */
+        .totals-section {
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 16px;
+            margin-top: 1.5rem;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .total-row:last-child {
+            border-bottom: none;
+        }
+
+        .total-label {
+            font-weight: 500;
+            color: #475569;
+        }
+
+        .total-value {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .grand-total {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #3b82f6;
+            margin-top: 0.5rem;
+            padding-top: 0.75rem;
+            border-top: 2px solid #cbd5e1;
+        }
+
+        /* Button Styles */
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            padding: 0.875rem 1.75rem;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f1f5f9;
+            color: #475569;
+            border: none;
+            padding: 0.875rem 1.75rem;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            background: #e2e8f0;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+
+        /* Invoices List */
+        .invoices-list-container {
+            background: white;
+            border-radius: 24px;
+            padding: 2rem;
+            margin-top: 0;
+        }
+
+        .invoices-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .filter-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #e2e8f0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.875rem;
+        }
+
+        .filter-btn.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .invoices-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .invoices-table th {
+            padding: 1rem;
+            text-align: left;
+            background: #f8fafc;
+            color: #475569;
+            font-weight: 600;
+            font-size: 0.875rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .invoices-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .invoice-status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-paid { background: #d1fae5; color: #065f46; }
+        .status-pending { background: #fed7aa; color: #92400e; }
+        .status-overdue { background: #fee2e2; color: #991b1b; }
+
+        .action-btn {
+            padding: 0.5rem;
+            border: none;
+            background: none;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .action-btn:hover {
+            background: #f1f5f9;
+        }
+
+        /* Invoice Preview Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 24px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .invoice-preview {
+            padding: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            .invoices-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .filter-buttons {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="logo">
+            <i class="fas fa-file-invoice-dollar"></i>
+            <h2>FT-ECH</h2>
+        </div>
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <div class="nav-link" data-view="form">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>Nouvelle Facture</span>
+                </div>
+            </li>
+            <li class="nav-item">
+                <div class="nav-link active" data-view="list">
+                    <i class="fas fa-list"></i>
+                    <span>Mes Factures</span>
+                </div>
+            </li>
+            <li class="nav-item">
+                <div class="nav-link" data-view="stats">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Statistiques</span>
+                </div>
+            </li>
+        </ul>
+    </aside>
+
+o    <main class="main-content">
+        <div class="header">
+            <div class="page-title">
+                <h1 id="mainTitle">Mes factures</h1>
+                <p id="mainSubtitle">Consultez et gérez toutes vos factures</p>
+            </div>
+            <div class="user-info">
+                <div class="user-profile">
+                    <div class="avatar">AD</div>
+                    <div>
+                        <div><strong>Admin</strong></div>
+                        <div style="font-size: 0.75rem; color: #64748b;">Facturation Pro</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulaire de création de facture -->
+        <div id="formView" style="display: none;" class="invoice-form-container">
+            <form id="invoiceForm">
+                <div class="form-section">
+                    <h3><i class="fas fa-building"></i> Informations client</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Nom du client *</label>
+                            <input type="text" id="clientName" required placeholder="Nom de l'entreprise ou client">
+                        </div>
+                        <div class="form-group">
+                            <label>Email client</label>
+                            <input type="email" id="clientEmail" placeholder="client@email.com">
+                        </div>
+                        <div class="form-group">
+                            <label>TVA (si applicable)</label>
+                            <input type="text" id="clientVat" placeholder="FR XX XXX XXX">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3><i class="fas fa-calendar-alt"></i> Détails facture</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Numéro facture</label>
+                            <input type="text" id="invoiceNumber" placeholder="FAC-2024-001" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label>Date d'émission *</label>
+                            <input type="date" id="issueDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Date d'échéance *</label>
+                            <input type="date" id="dueDate" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3><i class="fas fa-shopping-cart"></i> Articles / Prestations</h3>
+                    <div class="articles-table-container">
+                        <table class="articles-table" id="articlesTable">
+                            <thead>
+                                <tr>
+                                    <th>Description</th>
+                                    <th>Quantité</th>
+                                    <th>Prix unitaire (DA)</th>
+                                    <th>TVA (%)</th>
+                                    <th>Total HT (DA)</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="articlesBody">
+                                <tr class="article-row">
+                                    <td><input type="text" class="article-desc" placeholder="Description de l'article" style="min-width: 200px;"></td>
+                                    <td><input type="number" class="article-qty" value="1" min="1" step="1" style="width: 80px;"></td>
+                                    <td><input type="number" class="article-price" value="0" min="0" step="0.01" style="width: 100px;"></td>
+                                    <td>
+                                        <select class="article-vat" style="width: 80px;">
+                                            <option value="20">19%</option>
+                                            <option value="10">10%</option>
+                                            <option value="19">19%</option>
+                                            <option value="0">0%</option>
+                                        </select>
+                                    </td>
+                                    <td class="article-total-ht">0.00 DA</td>
+                                    <td><button type="button" class="remove-article"><i class="fas fa-trash"></i></button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="add-article-btn" id="addArticleBtn">
+                        <i class="fas fa-plus"></i> Ajouter un article
+                    </button>
+                </div>
+
+                <div class="totals-section">
+                    <div class="total-row">
+                        <span class="total-label">Total HT :</span>
+                        <span class="total-value" id="totalHT">0.00 DA</span>
+                    </div>
+                    <div class="total-row">
+                        <span class="total-label">TVA :</span>
+                        <span class="total-value" id="totalVAT">0.00 DA</span>
+                    </div>
+                    <div class="total-row grand-total">
+                        <span class="total-label">Total TTC :</span>
+                        <span class="total-value" id="totalTTC">0.00 DA</span>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" id="resetFormBtn">Réinitialiser</button>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-save"></i> Créer la facture
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Liste des factures -->
+        <div id="listView" class="invoices-list-container">
+            <div class="invoices-header">
+                <h3><i class="fas fa-file-invoice"></i> Toutes les factures</h3>
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-filter="all">Toutes</button>
+                    <button class="filter-btn" data-filter="paid">Payées</button>
+                    <button class="filter-btn" data-filter="pending">Non réglées</button>
+                    <button class="filter-btn" data-filter="overdue">En retard</button>
+                </div>
+                <button class="btn-primary" id="newInvoiceBtn">
+                    <i class="fas fa-plus"></i> Nouvelle facture
+                </button>
+            </div>
+            <div class="articles-table-container">
+                <table class="invoices-table">
+                    <thead>
+                        <tr>
+                            <th>N° Facture</th>
+                            <th>Client</th>
+                            <th>Date émission</th>
+                            <th>Date échéance</th>
+                            <th>Total TTC</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoicesListBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Vue Statistiques -->
+        <div id="statsView" style="display: none;">
+            <div class="stats-grid" id="statsGrid"></div>
+        </div>
+    </main>
+
+    <!-- Modal Aperçu Facture -->
+    <div id="previewModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Aperçu de la facture</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="invoice-preview" id="previewContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // Factures pré-insérées (payées et non réglées)
+        const defaultInvoices = [
+            {
+                id: 1001,
+                invoiceNumber: "FAC-2024-001",
+                clientName: "SARL Tech Solutions",
+                clientEmail: "contact@techsolutions.fr",
+                clientVat: "FR123456789",
+                issueDate: "2024-01-15",
+                dueDate: "2024-02-14",
+                articles: [
+                    { description: "Développement site web", quantity: 1, unitPrice: 2500, vatRate: 20 },
+                    { description: "Hébergement annuel", quantity: 1, unitPrice: 360, vatRate: 20 }
+                ],
+                totalHT: 2860,
+                totalTTC: 3432,
+                status: "paid",
+                createdAt: "2024-01-15T10:00:00"
+            },
+            {
+                id: 1002,
+                invoiceNumber: "FAC-2024-002",
+                clientName: "Agence Web Créative",
+                clientEmail: "contact@webcreative.fr",
+                clientVat: "FR987654321",
+                issueDate: "2024-01-20",
+                dueDate: "2024-02-19",
+                articles: [
+                    { description: "Refonte graphique", quantity: 1, unitPrice: 1200, vatRate: 20 },
+                    { description: "Formation WordPress", quantity: 2, unitPrice: 450, vatRate: 20 }
+                ],
+                totalHT: 2100,
+                totalTTC: 2520,
+                status: "pending",
+                createdAt: "2024-01-20T14:30:00"
+            },
+            {
+                id: 1003,
+                invoiceNumber: "FAC-2024-003",
+                clientName: "Digital Marketing Pro",
+                clientEmail: "contact@digitalmarketing.fr",
+                clientVat: "FR456789123",
+                issueDate: "2024-01-05",
+                dueDate: "2024-02-04",
+                articles: [
+                    { description: "Campagne SEA", quantity: 1, unitPrice: 1800, vatRate: 20 },
+                    { description: "Gestion réseaux sociaux", quantity: 1, unitPrice: 800, vatRate: 20 }
+                ],
+                totalHT: 2600,
+                totalTTC: 3120,
+                status: "overdue",
+                createdAt: "2024-01-05T09:15:00"
+            },
+            {
+                id: 1004,
+                invoiceNumber: "FAC-2024-004",
+                clientName: "E-commerce Express",
+                clientEmail: "compta@ecommerce-express.fr",
+                clientVat: "FR741852963",
+                issueDate: "2024-01-25",
+                dueDate: "2024-02-24",
+                articles: [
+                    { description: "Intégration API paiement", quantity: 1, unitPrice: 950, vatRate: 20 },
+                    { description: "Maintenance mensuelle", quantity: 1, unitPrice: 150, vatRate: 20 }
+                ],
+                totalHT: 1100,
+                totalTTC: 1320,
+                status: "pending",
+                createdAt: "2024-01-25T11:45:00"
+            },
+            {
+                id: 1005,
+                invoiceNumber: "FAC-2024-005",
+                clientName: "Startup Innovante",
+                clientEmail: "finance@startupinnov.fr",
+                clientVat: "FR369258147",
+                issueDate: "2024-01-10",
+                dueDate: "2024-02-09",
+                articles: [
+                    { description: "MVP Application mobile", quantity: 1, unitPrice: 4200, vatRate: 20 },
+                    { description: "Stratégie marketing", quantity: 1, unitPrice: 1500, vatRate: 20 }
+                ],
+                totalHT: 5700,
+                totalTTC: 6840,
+                status: "paid",
+                createdAt: "2024-01-10T16:20:00"
+            },
+            {
+                id: 1006,
+                invoiceNumber: "FAC-2024-006",
+                clientName: "Cabinet Conseil ABC",
+                clientEmail: "contact@cabinetabc.fr",
+                clientVat: "FR147258369",
+                issueDate: "2024-01-28",
+                dueDate: "2024-02-27",
+                articles: [
+                    { description: "Audit organisationnel", quantity: 1, unitPrice: 1850, vatRate: 20 },
+                    { description: "Rapport stratégique", quantity: 1, unitPrice: 650, vatRate: 20 }
+                ],
+                totalHT: 2500,
+                totalTTC: 3000,
+                status: "pending",
+                createdAt: "2024-01-28T08:30:00"
+            },
+            {
+                id: 1007,
+                invoiceNumber: "FAC-2024-007",
+                clientName: "Restaurant Le Gourmet",
+                clientEmail: "compta@legourmet.fr",
+                clientVat: "FR963852741",
+                issueDate: "2024-01-18",
+                dueDate: "2024-02-17",
+                articles: [
+                    { description: "Application de réservation", quantity: 1, unitPrice: 2200, vatRate: 20 },
+                    { description: "Formation personnel", quantity: 3, unitPrice: 200, vatRate: 20 }
+                ],
+                totalHT: 2800,
+                totalTTC: 3360,
+                status: "paid",
+                createdAt: "2024-01-18T13:15:00"
+            },
+            {
+                id: 1008,
+                invoiceNumber: "FAC-2024-008",
+                clientName: "Hôtel Paradise",
+                clientEmail: "direction@hotelparadise.fr",
+                clientVat: "FR159753486",
+                issueDate: "2024-01-22",
+                dueDate: "2024-02-21",
+                articles: [
+                    { description: "Site web responsive", quantity: 1, unitPrice: 1850, vatRate: 20 },
+                    { description: "Système de réservation", quantity: 1, unitPrice: 1250, vatRate: 20 }
+                ],
+                totalHT: 3100,
+                totalTTC: 3720,
+                status: "overdue",
+                createdAt: "2024-01-22T10:00:00"
+            }
+        ];
+
+        // Stockage des factures
+        let invoices = [];
+        let currentFilter = 'all';
+        let currentView = 'list';
+
+        // Générer un numéro de facture unique
+        function generateInvoiceNumber() {
+            const year = new Date().getFullYear();
+            const count = invoices.filter(inv => inv.invoiceNumber.includes(year)).length + 1;
+            return `FAC-${year}-${count.toString().padStart(3, '0')}`;
+        }
+
+        // Initialiser les données
+        function initializeData() {
+            const stored = localStorage.getItem('invoices');
+            if (stored) {
+                invoices = JSON.parse(stored);
+            } else {
+                invoices = [...defaultInvoices];
+                localStorage.setItem('invoices', JSON.stringify(invoices));
+            }
+        }
+
+        // Mettre à jour les totaux
+        function updateTotals() {
+            const rows = document.querySelectorAll('.article-row');
+            let totalHT = 0;
+            let totalVAT = 0;
+
+            rows.forEach(row => {
+                const qty = parseFloat(row.querySelector('.article-qty').value) || 0;
+                const price = parseFloat(row.querySelector('.article-price').value) || 0;
+                const vatRate = parseFloat(row.querySelector('.article-vat').value) || 0;
+                
+                const articleHT = qty * price;
+                const articleVAT = articleHT * (vatRate / 100);
+                
+                totalHT += articleHT;
+                totalVAT += articleVAT;
+                
+                row.querySelector('.article-total-ht').textContent = articleHT.toFixed(2) + ' DA';
+            });
+            
+            const totalTTC = totalHT + totalVAT;
+            
+            document.getElementById('totalHT').textContent = totalHT.toFixed(2) + ' DA';
+            document.getElementById('totalVAT').textContent = totalVAT.toFixed(2) + ' DA';
+            document.getElementById('totalTTC').textContent = totalTTC.toFixed(2) + ' DA';
+        }
+
+        // Ajouter un article
+        function addArticle() {
+            const tbody = document.getElementById('articlesBody');
+            const newRow = document.createElement('tr');
+            newRow.className = 'article-row';
+            newRow.innerHTML = `
+                <td><input type="text" class="article-desc" placeholder="Description de l'article" style="min-width: 200px;"></td>
+                <td><input type="number" class="article-qty" value="1" min="1" step="1" style="width: 80px;"></td>
+                <td><input type="number" class="article-price" value="0" min="0" step="0.01" style="width: 100px;"></td>
+                <td>
+                    <select class="article-vat" style="width: 80px;">
+                        <option value="20">20%</option>
+                        <option value="10">10%</option>
+                        <option value="19">19%</option>
+                        <option value="0">0%</option>
+                    </select>
+                </td>
+                <td class="article-total-ht">0.00 DA</td>
+                <td><button type="button" class="remove-article"><i class="fas fa-trash"></i></button></td>
+            `;
+            tbody.appendChild(newRow);
+            
+            attachArticleEvents(newRow);
+        }
+
+        // Attacher les événements à un article
+        function attachArticleEvents(row) {
+            const inputs = row.querySelectorAll('input, select');
+            inputs.forEach(input => {
+                input.addEventListener('input', updateTotals);
+            });
+            row.querySelector('.remove-article').addEventListener('click', function() {
+                if (document.querySelectorAll('.article-row').length > 1) {
+                    row.remove();
+                    updateTotals();
+                } else {
+                    alert('Vous devez avoir au moins un article');
+                }
+            });
+        }
+
+        // Réinitialiser le formulaire
+        function resetForm() {
+            document.getElementById('clientName').value = '';
+            document.getElementById('clientEmail').value = '';
+            document.getElementById('clientVat').value = '';
+            document.getElementById('issueDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('dueDate').value = new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0];
+            document.getElementById('invoiceNumber').value = generateInvoiceNumber();
+            
+            const tbody = document.getElementById('articlesBody');
+            tbody.innerHTML = '';
+            const firstRow = document.createElement('tr');
+            firstRow.className = 'article-row';
+            firstRow.innerHTML = `
+                <td><input type="text" class="article-desc" placeholder="Description de l'article" style="min-width: 200px;"></td>
+                <td><input type="number" class="article-qty" value="1" min="1" step="1" style="width: 80px;"></td>
+                <td><input type="number" class="article-price" value="0" min="0" step="0.01" style="width: 100px;"></td>
+                <td>
+                    <select class="article-vat" style="width: 80px;">
+                        <option value="20">20%</option>
+                        <option value="10">10%</option>
+                        <option value="19">19%</option>
+                        <option value="0">0%</option>
+                    </select>
+                </td>
+                <td class="article-total-ht">0.00 DA</td>
+                <td><button type="button" class="remove-article"><i class="fas fa-trash"></i></button></td>
+            `;
+            tbody.appendChild(firstRow);
+            attachArticleEvents(firstRow);
+            updateTotals();
+        }
+
+        // Récupérer les articles du formulaire
+        function getArticles() {
+            const articles = [];
+            const rows = document.querySelectorAll('.article-row');
+            rows.forEach(row => {
+                const description = row.querySelector('.article-desc').value;
+                if (description) {
+                    articles.push({
+                        description: description,
+                        quantity: parseFloat(row.querySelector('.article-qty').value),
+                        unitPrice: parseFloat(row.querySelector('.article-price').value),
+                        vatRate: parseFloat(row.querySelector('.article-vat').value)
+                    });
+                }
+            });
+            return articles;
+        }
+
+        // Créer une facture
+        function createInvoice(event) {
+            event.preventDefault();
+            
+            const clientName = document.getElementById('clientName').value;
+            if (!clientName) {
+                alert('Veuillez saisir le nom du client');
+                return;
+            }
+            
+            const articles = getArticles();
+            if (articles.length === 0 || articles[0].description === '') {
+                alert('Veuillez ajouter au moins un article');
+                return;
+            }
+            
+            const totalHT = parseFloat(document.getElementById('totalHT').textContent);
+            const totalTTC = parseFloat(document.getElementById('totalTTC').textContent);
+            
+            const invoice = {
+                id: Date.now(),
+                invoiceNumber: document.getElementById('invoiceNumber').value,
+                clientName: clientName,
+                clientEmail: document.getElementById('clientEmail').value,
+                clientVat: document.getElementById('clientVat').value,
+                issueDate: document.getElementById('issueDate').value,
+                dueDate: document.getElementById('dueDate').value,
+                articles: articles,
+                totalHT: totalHT,
+                totalTTC: totalTTC,
+                status: 'pending',
+                createdAt: new Date().toISOString()
+            };
+            
+            invoices.unshift(invoice);
+            localStorage.setItem('invoices', JSON.stringify(invoices));
+            
+            alert('Facture créée avec succès !');
+            resetForm();
+            switchView('list');
+            displayInvoices();
+        }
+
+        // Afficher les factures avec filtre
+        function displayInvoices() {
+            let filteredInvoices = invoices;
+            
+            if (currentFilter === 'paid') {
+                filteredInvoices = invoices.filter(inv => inv.status === 'paid');
+            } else if (currentFilter === 'pending') {
+                filteredInvoices = invoices.filter(inv => inv.status === 'pending');
+            } else if (currentFilter === 'overdue') {
+                filteredInvoices = invoices.filter(inv => inv.status === 'overdue');
+            }
+            
+            const tbody = document.getElementById('invoicesListBody');
+            tbody.innerHTML = '';
+            
+            if (filteredInvoices.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 3rem;">Aucune facture trouvée</td></tr>';
+                return;
+            }
+            
+            filteredInvoices.forEach(invoice => {
+                const row = tbody.insertRow();
+                row.insertCell(0).innerHTML = `<strong>${invoice.invoiceNumber}</strong>`;
+                row.insertCell(1).innerHTML = invoice.clientName;
+                row.insertCell(2).innerHTML = new Date(invoice.issueDate).toLocaleDateString('fr-FR');
+                row.insertCell(3).innerHTML = new Date(invoice.dueDate).toLocaleDateString('fr-FR');
+                row.insertCell(4).innerHTML = `<strong>${invoice.totalTTC.toFixed(2)} DA</strong>`;
+                
+                const statusCell = row.insertCell(5);
+                const statusSpan = document.createElement('span');
+                let statusText = '';
+                if (invoice.status === 'paid') statusText = 'Payée';
+                else if (invoice.status === 'pending') statusText = 'Non réglée';
+                else statusText = 'En retard';
+                statusSpan.className = `invoice-status status-${invoice.status}`;
+                statusSpan.textContent = statusText;
+                statusCell.appendChild(statusSpan);
+                
+                const actionsCell = row.insertCell(6);
+                const viewBtn = document.createElement('button');
+                viewBtn.className = 'action-btn';
+                viewBtn.innerHTML = '<i class="fas fa-eye"></i>';
+                viewBtn.onclick = () => previewInvoice(invoice);
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'action-btn';
+                deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                deleteBtn.onclick = () => deleteInvoice(invoice.id);
+                
+                actionsCell.appendChild(viewBtn);
+                actionsCell.appendChild(deleteBtn);
+            });
+            
+            updateStats();
+        }
+
+        // Aperçu facture
+        function previewInvoice(invoice) {
+            const previewContent = document.getElementById('previewContent');
+            const articlesHTML = invoice.articles.map(article => `
+                <tr>
+                    <td style="padding: 8px;">${article.description}</td>
+                    <td style="padding: 8px; text-align: center;">${article.quantity}</td>
+                    <td style="padding: 8px; text-align: right;">${article.unitPrice.toFixed(2)} DA</td>
+                    <td style="padding: 8px; text-align: right;">${(article.quantity * article.unitPrice).toFixed(2)} DA</td>
+                    <td style="padding: 8px; text-align: right;">${article.vatRate}%</td>
+                </tr>
+            `).join('');
+            
+            const statusText = invoice.status === 'paid' ? 'Payée' : invoice.status === 'pending' ? 'Non réglée' : 'En retard';
+            const statusColor = invoice.status === 'paid' ? '#10b981' : invoice.status === 'pending' ? '#f59e0b' : '#ef4444';
+            
+            previewContent.innerHTML = `
+                <div style="margin-bottom: 2rem; text-align: center;">
+                    <h2 style="color: #3b82f6;">FACTURE</h2>
+                    <p><strong>N° ${invoice.invoiceNumber}</strong></p>
+                    <span style="display: inline-block; padding: 0.25rem 1rem; background: ${statusColor}; color: white; border-radius: 20px; font-size: 0.875rem;">${statusText}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 2rem;">
+                    <div>
+                        <strong>Émetteur :</strong><br>
+                        FacturoPro SAS<br>
+                        123 Avenue des Affaires<br>
+                        75001 Paris<br>
+                        contact@facturopro.fr
+                    </div>
+                    <div>
+                        <strong>Client :</strong><br>
+                        ${invoice.clientName}<br>
+                        ${invoice.clientEmail ? invoice.clientEmail + '<br>' : ''}
+                        ${invoice.clientVat ? 'TVA: ' + invoice.clientVat : ''}
+                    </div>
+                </div>
+                <div style="margin-bottom: 2rem;">
+                    <p><strong>Date d'émission :</strong> ${new Date(invoice.issueDate).toLocaleDateString('fr-FR')}</p>
+                    <p><strong>Date d'échéance :</strong> ${new Date(invoice.dueDate).toLocaleDateString('fr-FR')}</p>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 1.5rem;">
+                    <thead>
+                        <tr style="background: #f1f5f9;">
+                            <th style="padding: 10px; text-align: left;">Description</th>
+                            <th style="padding: 10px; text-align: center;">Qté</th>
+                            <th style="padding: 10px; text-align: right;">Prix unit.</th>
+                            <th style="padding: 10px; text-align: right;">Total HT</th>
+                            <th style="padding: 10px; text-align: right;">TVA</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${articlesHTML}
+                    </tbody>
+                </table>
+                <div style="text-align: right;">
+                    <p><strong>Total HT :</strong> ${invoice.totalHT.toFixed(2)} DA</p>
+                    <p><strong>Total TTC :</strong> ${invoice.totalTTC.toFixed(2)} DA</p>
+                </div>
+                ${invoice.status !== 'paid' ? `
+                <div style="margin-top: 2rem; text-align: center; padding-top: 1rem; border-top: 1px solid #e2e8f0;">
+                    <button class="btn-primary" onclick="markAsPaid(${invoice.id})">
+                        <i class="fas fa-check"></i> Marquer comme payée
+                    </button>
+                </div>
+                ` : ''}
+            `;
+            
+            document.getElementById('previewModal').classList.add('active');
+        }
+
+        // Marquer comme payée
+        function markAsPaid(id) {
+            const invoice = invoices.find(inv => inv.id === id);
+            if (invoice) {
+                invoice.status = 'paid';
+                localStorage.setItem('invoices', JSON.stringify(invoices));
+                displayInvoices();
+                alert('Facture marquée comme payée');
+                document.getElementById('previewModal').classList.remove('active');
+            }
+        }
+
+        // Supprimer facture
+        function deleteInvoice(id) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cette facture ?')) {
+                invoices = invoices.filter(inv => inv.id !== id);
+                localStorage.setItem('invoices', JSON.stringify(invoices));
+                displayInvoices();
+                updateStats();
+            }
+        }
+
+        // Mettre à jour les statistiques
+        function updateStats() {
+            const total = invoices.length;
+            const paid = invoices.filter(inv => inv.status === 'paid').length;
+            const pending = invoices.filter(inv => inv.status === 'pending').length;
+            const overdue = invoices.filter(inv => inv.status === 'overdue').length;
+            const totalAmount = invoices.reduce((sum, inv) => sum + inv.totalTTC, 0);
+            
+            const statsGrid = document.getElementById('statsGrid');
+            statsGrid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon"><i class="fas fa-file-invoice"></i></div>
+                    </div>
+                    <div class="stat-value">${total}</div>
+                    <div class="stat-label">Total factures</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669);"><i class="fas fa-check-circle"></i></div>
+                    </div>
+                    <div class="stat-value">${paid}</div>
+                    <div class="stat-label">Factures payées</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706);"><i class="fas fa-clock"></i></div>
+                    </div>
+                    <div class="stat-value">${pending}</div>
+                    <div class="stat-label">Non réglées</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #ef4444, #dc2626);"><i class="fas fa-exclamation-triangle"></i></div>
+                    </div>
+                    <div class="stat-value">${overdue}</div>
+                    <div class="stat-label">En retard</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);"><i class="fas fa-euro-sign"></i></div>
+                    </div>
+                    <div class="stat-value">${totalAmount.toFixed(2)} DA</div>
+                    <div class="stat-label">Chiffre d'affaires</div>
+                </div>
+            `;
+        }
+
+        // Changer de vue
+        function switchView(view) {
+            currentView = view;
+            document.getElementById('formView').style.display = view === 'form' ? 'block' : 'none';
+            document.getElementById('listView').style.display = view === 'list' ? 'block' : 'none';
+            document.getElementById('statsView').style.display = view === 'stats' ? 'block' : 'none';
+            
+            const titles = {
+                form: ['Créer une nouvelle facture', 'Saisissez les informations et ajoutez les articles'],
+                list: ['Mes factures', 'Consultez et gérez toutes vos factures'],
+                stats: ['Statistiques', 'Analysez votre activité de facturation']
+            };
+            
+            document.getElementById('mainTitle').textContent = titles[view][0];
+            document.getElementById('mainSubtitle').textContent = titles[view][1];
+            
+            if (view === 'list') displayInvoices();
+            if (view === 'stats') updateStats();
+        }
+
+        // Appliquer le filtre
+        function applyFilter(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                if (btn.dataset.filter === filter) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            displayInvoices();
+        }
+
+        // Événements
+        document.getElementById('invoiceForm').addEventListener('submit', createInvoice);
+        document.getElementById('addArticleBtn').addEventListener('click', addArticle);
+        document.getElementById('resetFormBtn').addEventListener('click', resetForm);
+        document.getElementById('newInvoiceBtn').addEventListener('click', () => switchView('form'));
+        
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                applyFilter(btn.dataset.filter);
+            });
+        });
+        
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                const view = link.dataset.view;
+                switchView(view);
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+            });
+        });
+        
+        document.querySelectorAll('.close-modal').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.getElementById('previewModal').classList.remove('active');
+            });
+        });
+        
+        // Fermer modal en cliquant en dehors
+        document.getElementById('previewModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('previewModal')) {
+                document.getElementById('previewModal').classList.remove('active');
+            }
+        });
+        
+        // Initialisation
+        initializeData();
+        resetForm();
+        displayInvoices();
+        window.markAsPaid = markAsPaid;
+    </script>
+</body>
+</html>

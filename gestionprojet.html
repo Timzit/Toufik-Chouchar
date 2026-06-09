@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoManage Pro - Gestion de Projets Automatisme</title>
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Chart.js pour les graphiques -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #0066CC;
+            --primary-dark: #0052A3;
+            --secondary: #00A3FF;
+            --accent: #FF6B00;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --dark: #1E293B;
+            --darker: #0F172A;
+            --gray: #64748B;
+            --light: #F8FAFC;
+            --border: #E2E8F0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--light);
+            color: var(--dark);
+            overflow-x: hidden;
+        }
+
+        /* Layout Principal */
+        .app {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Professionnelle */
+        .sidebar {
+            width: 280px;
+            background: var(--darker);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        .logo {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+
+        .logo h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #00A3FF, #0066CC);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .logo p {
+            font-size: 0.75rem;
+            color: var(--gray);
+            margin-top: 5px;
+        }
+
+        .nav-menu {
+            flex: 1;
+            padding: 0 16px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            margin: 4px 0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #94A3B8;
+        }
+
+        .nav-item:hover {
+            background: rgba(255,255,255,0.05);
+            color: white;
+        }
+
+        .nav-item.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .nav-item i {
+            width: 24px;
+            font-size: 1.2rem;
+        }
+
+        .user-info {
+            padding: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 24px 32px;
+            transition: all 0.3s;
+        }
+
+        /* Pages */
+        .page {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .page.active-page {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .page-title h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .page-title p {
+            color: var(--gray);
+            margin-top: 4px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-outline:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            border: 1px solid var(--border);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .stat-header i {
+            font-size: 2rem;
+            color: var(--primary);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: var(--gray);
+            font-size: 0.875rem;
+        }
+
+        /* Projects Grid */
+        .projects-section {
+            margin-bottom: 32px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-header h2 {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 24px;
+        }
+
+        .project-card {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .project-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+
+        .project-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #F8FAFC 0%, #FFFFFF 100%);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .project-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .project-status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #DBEAFE;
+            color: var(--primary);
+        }
+
+        .status-completed {
+            background: #D1FAE5;
+            color: var(--success);
+        }
+
+        .status-delayed {
+            background: #FEF3C7;
+            color: var(--warning);
+        }
+
+        .project-meta {
+            display: flex;
+            gap: 16px;
+            margin-top: 12px;
+            font-size: 0.8rem;
+            color: var(--gray);
+        }
+
+        .project-body {
+            padding: 20px;
+        }
+
+        .progress-section {
+            margin-bottom: 16px;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.875rem;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        .task-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 12px;
+            font-size: 0.8rem;
+            color: var(--gray);
+        }
+
+        /* Équipement & Matériel */
+        .equipment-section {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border);
+            margin-top: 32px;
+        }
+
+        .equipment-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .equipment-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--light);
+            border-radius: 10px;
+            border-left: 3px solid var(--primary);
+        }
+
+        .equipment-icon {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .equipment-info {
+            flex: 1;
+        }
+
+        .equipment-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .equipment-specs {
+            font-size: 0.75rem;
+            color: var(--gray);
+        }
+
+        /* Planning / Calendrier */
+        .calendar-view {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            padding: 24px;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            text-align: center;
+        }
+
+        .calendar-day-header {
+            padding: 12px;
+            font-weight: 600;
+            background: var(--light);
+            border-radius: 8px;
+        }
+
+        .calendar-day {
+            padding: 12px;
+            background: var(--light);
+            border-radius: 8px;
+            min-height: 100px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .calendar-day:hover {
+            background: #e2e8f0;
+        }
+
+        .calendar-day.today {
+            background: #DBEAFE;
+            border: 2px solid var(--primary);
+        }
+
+        .day-number {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .event-badge {
+            background: var(--primary);
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-top: 4px;
+            display: inline-block;
+        }
+
+        /* Équipes */
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+
+        .team-card {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            padding: 20px;
+        }
+
+        .member-list {
+            margin-top: 16px;
+        }
+
+        .member-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .member-avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        /* Rapports */
+        .report-card {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .chart-container {
+            max-width: 100%;
+            height: 300px;
+            margin: 20px 0;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 32px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+        }
+
+        /* Timeline */
+        .timeline {
+            margin-top: 16px;
+        }
+
+        .timeline-item {
+            display: flex;
+            gap: 12px;
+            padding: 12px 0;
+            border-left: 2px solid var(--border);
+            margin-left: 20px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -8px;
+            top: 16px;
+            width: 12px;
+            height: 12px;
+            background: var(--primary);
+            border-radius: 50%;
+        }
+
+        .timeline-date {
+            font-size: 0.75rem;
+            color: var(--gray);
+            min-width: 100px;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 16px;
+            }
+            .projects-grid {
+                grid-template-columns: 1fr;
+            }
+            .calendar-grid {
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="logo">
+                <h2>FT-ECH</h2>
+                <p>Gestion de projets d'automatisme</p>
+            </div>
+            <div class="nav-menu">
+                <div class="nav-item active" data-page="dashboard">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Tableau de bord</span>
+                </div>
+                <div class="nav-item" data-page="projects">
+                    <i class="fas fa-project-diagram"></i>
+                    <span>Projets</span>
+                </div>
+                <div class="nav-item" data-page="planning">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Planning</span>
+                </div>
+                <div class="nav-item" data-page="teams">
+                    <i class="fas fa-users"></i>
+                    <span>Équipes</span>
+                </div>
+                <div class="nav-item" data-page="reports">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Rapports</span>
+                </div>
+            </div>
+            <div class="user-info">
+                <div class="avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div>
+                    <div><strong></strong></div>
+                    <div style="font-size: 0.75rem;">Chef de projet automation</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Page Dashboard -->
+            <div id="dashboardPage" class="page active-page">
+                <div class="header">
+                    <div class="page-title">
+                        <h1>Tableau de bord</h1>
+                        <p>Suivi des projets d'automatisme industriel</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn-outline" id="exportBtnDashboard">
+                            <i class="fas fa-download"></i> Exporter
+                        </button>
+                        <button class="btn-primary" id="newProjectBtnDashboard">
+                            <i class="fas fa-plus"></i> Nouveau projet
+                        </button>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-label">Projets actifs</span>
+                            <i class="fas fa-rocket"></i>
+                        </div>
+                        <div class="stat-value" id="activeProjects">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-label">Tâches complétées</span>
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-value" id="completedTasks">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-label">Progression globale</span>
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="stat-value" id="globalProgress">0%</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-label">Équipements en service</span>
+                            <i class="fas fa-microchip"></i>
+                        </div>
+                        <div class="stat-value" id="activeEquipment">0</div>
+                    </div>
+                </div>
+
+                <div class="projects-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-tasks"></i> Projets en cours</h2>
+                        <button class="btn-outline" id="viewAllProjectsBtn">Voir tous</button>
+                    </div>
+                    <div class="projects-grid" id="projectsGridDashboard"></div>
+                </div>
+
+                <div class="equipment-section">
+                    <h3><i class="fas fa-microchip"></i> Équipements & Automates</h3>
+                    <div class="equipment-grid" id="equipmentGridDashboard"></div>
+                </div>
+
+                <div class="equipment-section" style="margin-top: 24px;">
+                    <h3><i class="fas fa-history"></i> Activité récente</h3>
+                    <div class="timeline" id="timelineDashboard"></div>
+                </div>
+            </div>
+
+            <!-- Page Projets -->
+            <div id="projectsPage" class="page">
+                <div class="header">
+                    <div class="page-title">
+                        <h1>Gestion des projets</h1>
+                        <p>Liste complète de tous les projets d'automatisme</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn-primary" id="newProjectBtnProjects">
+                            <i class="fas fa-plus"></i> Nouveau projet
+                        </button>
+                    </div>
+                </div>
+                <div class="projects-grid" id="projectsGridFull"></div>
+            </div>
+
+            <!-- Page Planning -->
+            <div id="planningPage" class="page">
+                <div class="header">
+                    <div class="page-title">
+                        <h1>Planning des projets</h1>
+                        <p>Calendrier des échéances et livraisons</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn-primary" id="addEventBtn">
+                            <i class="fas fa-plus"></i> Ajouter un événement
+                        </button>
+                    </div>
+                </div>
+                <div class="calendar-view">
+                    <div class="calendar-header">
+                        <button class="btn-outline" id="prevMonthBtn"><i class="fas fa-chevron-left"></i></button>
+                        <h3 id="currentMonthYear"></h3>
+                        <button class="btn-outline" id="nextMonthBtn"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <div class="calendar-grid" id="calendarGrid"></div>
+                </div>
+            </div>
+
+            <!-- Page Équipes -->
+            <div id="teamsPage" class="page">
+                <div class="header">
+                    <div class="page-title">
+                        <h1>Équipes techniques</h1>
+                        <p>Gestion des ressources et compétences</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn-primary" id="addMemberBtn">
+                            <i class="fas fa-user-plus"></i> Ajouter un membre
+                        </button>
+                    </div>
+                </div>
+                <div class="team-grid" id="teamGrid"></div>
+            </div>
+
+            <!-- Page Rapports -->
+            <div id="reportsPage" class="page">
+                <div class="header">
+                    <div class="page-title">
+                        <h1>Rapports & Analytics</h1>
+                        <p>Indicateurs de performance et analyses</p>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn-outline" id="exportReportBtn">
+                            <i class="fas fa-download"></i> Exporter rapport
+                        </button>
+                    </div>
+                </div>
+                <div class="report-card">
+                    <h3>Progression des projets</h3>
+                    <div class="chart-container">
+                        <canvas id="progressChart"></canvas>
+                    </div>
+                </div>
+                <div class="report-card">
+                    <h3>Répartition des statuts</h3>
+                    <div class="chart-container">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+                <div class="report-card">
+                    <h3>Performance des équipes</h3>
+                    <div class="chart-container">
+                        <canvas id="teamPerformanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Nouveau Projet -->
+    <div class="modal" id="projectModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Créer un nouveau projet d'automatisme</h3>
+                <button class="btn-outline" onclick="closeModal('projectModal')">✕</button>
+            </div>
+            <form id="projectForm">
+                <div class="form-group">
+                    <label>Nom du projet</label>
+                    <input type="text" id="projectName" required placeholder="Ex: Installation API Rockwell">
+                </div>
+                <div class="form-group">
+                    <label>Client / Site</label>
+                    <input type="text" id="projectClient" required placeholder="Nom du client">
+                </div>
+                <div class="form-group">
+                    <label>Date de début</label>
+                    <input type="date" id="projectStart" required>
+                </div>
+                <div class="form-group">
+                    <label>Date de fin prévue</label>
+                    <input type="date" id="projectEnd" required>
+                </div>
+                <div class="form-group">
+                    <label>Statut</label>
+                    <select id="projectStatus">
+                        <option value="active">En cours</option>
+                        <option value="planning">En planification</option>
+                        <option value="delayed">Retardé</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea rows="3" id="projectDesc" placeholder="Description technique du projet..."></textarea>
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%;">Créer le projet</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Événement Planning -->
+    <div class="modal" id="eventModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Ajouter un événement</h3>
+                <button class="btn-outline" onclick="closeModal('eventModal')">✕</button>
+            </div>
+            <form id="eventForm">
+                <div class="form-group">
+                    <label>Titre de l'événement</label>
+                    <input type="text" id="eventTitle" required>
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="date" id="eventDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Type</label>
+                    <select id="eventType">
+                        <option value="livraison">Livraison équipement</option>
+                        <option value="reunion">Réunion technique</option>
+                        <option value="deadline">Échéance projet</option>
+                        <option value="formation">Formation</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%;">Ajouter</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Ajout Membre -->
+    <div class="modal" id="memberModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Ajouter un membre d'équipe</h3>
+                <button class="btn-outline" onclick="closeModal('memberModal')">✕</button>
+            </div>
+            <form id="memberForm">
+                <div class="form-group">
+                    <label>Nom complet</label>
+                    <input type="text" id="memberName" required>
+                </div>
+                <div class="form-group">
+                    <label>Spécialité</label>
+                    <select id="memberSpecialty">
+                        <option>Automaticien</option>
+                        <option>Électrotechnicien</option>
+                        <option>Programmeur API</option>
+                        <option>Chef de projet</option>
+                        <option>Technicien maintenance</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Équipe</label>
+                    <select id="memberTeam">
+                        <option value="Équipe Automation">Équipe Automation</option>
+                        <option value="Équipe Programmation">Équipe Programmation</option>
+                        <option value="Équipe Installation">Équipe Installation</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%;">Ajouter</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Données
+        let projects = [
+            {
+                id: 1,
+                name: "Installation API Rockwell ControlLogix",
+                client: "Usine AgroAlim Lyon",
+                startDate: "2026-02-01",
+                endDate: "2026-04-15",
+                status: "active",
+                description: "Installation et configuration d'un automate Rockwell ControlLogix pour ligne de production",
+                progress: 75,
+                tasks: [
+                    { name: "Câblage I/O", done: true },
+                    { name: "Programmation ladder", done: true },
+                    { name: "Tests IHM", done: false },
+                    { name: "Mise en service", done: false }
+                ]
+            },
+            {
+                id: 2,
+                name: "Migration",
+                client: "Chimie du Sud",
+                startDate: "2026-01-15",
+                endDate: "2026-03-30",
+                status: "active",
+                description: "Migration complète d'automates Mitsubishi vers nouvelle génération IQ-R",
+                progress: 45,
+                tasks: [
+                    { name: "Analyse code existant", done: true },
+                    { name: "Migration programmes", done: true },
+                    { name: "Tests compatibilité", done: false },
+                    { name: "Formation opérateurs", done: false }
+                ]
+            },
+            {
+                id: 3,
+                name: "Supervision SCADA Ignition",
+                client: "Station épuration Métropole",
+                startDate: "2026-03-01",
+                endDate: "2026-05-20",
+                status: "active",
+                description: "Mise en place supervision centralisée avec Ignition SCADA",
+                progress: 30,
+                tasks: [
+                    { name: "Conception IHM", done: true },
+                    { name: "Base de données historique", done: false },
+                    { name: "Alertes et reporting", done: false },
+                    { name: "Recette client", done: false }
+                ]
+            },
+            {
+                id: 4,
+                name: "Robotique collaborative Doosan M series",
+                client: "Logistique Express",
+                startDate: "2026-02-10",
+                endDate: "2026-04-05",
+                status: "delayed",
+                description: "Intégration de bras robotiques Doosan pour palettisation",
+                progress: 55,
+                tasks: [
+                    { name: "Étude de poste", done: true },
+                    { name: "Programmation robot", done: true },
+                    { name: "Sécurité machine", done: false },
+                    { name: "Mise en production", done: false }
+                ]
+            }
+        ];
+
+        let equipment = [
+            { name: "API Rockwell ControlLogix", type: "Automate", specs: "Modulaire, Ethernet/IP", status: "Actif" },
+            { name: "Replacement", type: "Automate", specs: " 64 I/O", status: "En cours d'installation" },
+            { name: "Variateur Altivar 630", type: "Variateur", specs: "45kW, communication Modbus", status: "Actif" },
+            { name: "IHM", type: "Interface", specs: "12 pouces, écran tactile", status: "Actif" },
+            { name: "Robot Doosan M0617", type: "Robotique", specs: "Charge 6kg, portée 900mm", status: "En configuration" },
+            { name: "Scanner RFID", type: "Identification", specs: "UHF, lecture 2m", status: "Actif" }
+        ];
+
+        let teamMembers = [
+            { id: 1, name: "", specialty: "Automaticien", team: "Équipe Automation", tasksCompleted: 24 },
+            { id: 2, name: "", specialty: "Programmeur API", team: "Équipe Programmation", tasksCompleted: 31 },
+            { id: 3, name: "", specialty: "Électrotechnicien", team: "Équipe Installation", tasksCompleted: 18 },
+            { id: 4, name: "", specialty: "Chef de projet", team: "Équipe Automation", tasksCompleted: 42 },
+            { id: 5, name: "", specialty: "Technicien maintenance", team: "Équipe Installation", tasksCompleted: 15 },
+            { id: 6, name: "", specialty: "Programmeur API", team: "Équipe Programmation", tasksCompleted: 27 }
+        ];
+
+        let calendarEvents = [
+            { date: "2026-03-28", title: "Livraison Rockwell ControlLogix", type: "livraison" },
+            { date: "2026-03-30", title: "Réunion projet migration", type: "reunion" },
+            { date: "2026-04-05", title: "Deadline projet Doosan", type: "deadline" },
+            { date: "2026-04-10", title: "Formation Ignition SCADA", type: "formation" }
+        ];
+
+        let timelineEvents = [
+            { date: "2026-03-28", event: "Projet Rockwell : tests IHM en cours", type: "update" },
+            { date: "2026-03-27", event: "Livraison équipements", type: "delivery" },
+            { date: "2026-03-26", event: "Réunion validation planning robotique Doosan", type: "meeting" },
+            { date: "2026-03-25", event: "Progression 75% pour projet Rockwell", type: "progress" }
+        ];
+
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+        let progressChart, statusChart, teamChart;
+
+        // Fonctions utilitaires
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('fr-FR');
+        }
+
+        function addTimelineEvent(eventMsg) {
+            const newEvent = {
+                date: new Date().toISOString().split('T')[0],
+                event: eventMsg,
+                type: 'update'
+            };
+            timelineEvents.unshift(newEvent);
+            if (timelineEvents.length > 10) timelineEvents.pop();
+            renderTimeline();
+        }
+
+        // Rendu Dashboard
+        function renderDashboard() {
+            const activeProjects = projects.filter(p => p.status === 'active').length;
+            const totalTasks = projects.reduce((sum, p) => sum + p.tasks.length, 0);
+            const completedTasks = projects.reduce((sum, p) => sum + p.tasks.filter(t => t.done).length, 0);
+            const avgProgress = Math.round(projects.reduce((sum, p) => sum + p.progress, 0) / projects.length);
+            
+            document.getElementById('activeProjects').innerHTML = activeProjects;
+            document.getElementById('completedTasks').innerHTML = completedTasks;
+            document.getElementById('globalProgress').innerHTML = `${avgProgress}%`;
+            document.getElementById('activeEquipment').innerHTML = equipment.filter(e => e.status === 'Actif').length;
+
+            const grid = document.getElementById('projectsGridDashboard');
+            grid.innerHTML = projects.filter(p => p.status === 'active' || p.status === 'delayed').slice(0, 3).map(project => `
+                <div class="project-card" onclick="showProjectDetails(${project.id})">
+                    <div class="project-header">
+                        <div class="project-title">
+                            <span>${project.name}</span>
+                            <span class="project-status status-${project.status === 'active' ? 'active' : 'delayed'}">
+                                ${project.status === 'active' ? 'En cours' : 'Retardé'}
+                            </span>
+                        </div>
+                        <div class="project-meta">
+                            <span><i class="fas fa-building"></i> ${project.client}</span>
+                            <span><i class="fas fa-calendar"></i> ${formatDate(project.endDate)}</span>
+                        </div>
+                    </div>
+                    <div class="project-body">
+                        <div class="progress-section">
+                            <div class="progress-header">
+                                <span>Avancement</span>
+                                <span>${project.progress}%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${project.progress}%"></div>
+                            </div>
+                        </div>
+                        <div class="task-stats">
+                            <span><i class="fas fa-tasks"></i> Tâches: ${project.tasks.filter(t => t.done).length}/${project.tasks.length}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            const equipmentGrid = document.getElementById('equipmentGridDashboard');
+            equipmentGrid.innerHTML = equipment.map(eq => `
+                <div class="equipment-item">
+                    <div class="equipment-icon">
+                        <i class="fas fa-${eq.type === 'Automate' ? 'microchip' : eq.type === 'Variateur' ? 'tachometer-alt' : 'robot'}"></i>
+                    </div>
+                    <div class="equipment-info">
+                        <div class="equipment-name">${eq.name}</div>
+                        <div class="equipment-specs">${eq.type} · ${eq.specs}</div>
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--success);">
+                        <i class="fas fa-check-circle"></i> ${eq.status}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderTimeline() {
+            const timeline = document.getElementById('timelineDashboard');
+            if (timeline) {
+                timeline.innerHTML = timelineEvents.map(event => `
+                    <div class="timeline-item">
+                        <div class="timeline-date">${formatDate(event.date)}</div>
+                        <div class="timeline-content">
+                            <strong>${event.type === 'update' ? '📊' : event.type === 'delivery' ? '📦' : event.type === 'meeting' ? '👥' : '📈'}</strong> ${event.event}
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Rendu projets complets
+        function renderAllProjects() {
+            const grid = document.getElementById('projectsGridFull');
+            if (grid) {
+                grid.innerHTML = projects.map(project => `
+                    <div class="project-card" onclick="showProjectDetails(${project.id})">
+                        <div class="project-header">
+                            <div class="project-title">
+                                <span>${project.name}</span>
+                                <span class="project-status status-${project.status === 'active' ? 'active' : project.status === 'delayed' ? 'delayed' : 'active'}">
+                                    ${project.status === 'active' ? 'En cours' : project.status === 'delayed' ? 'Retardé' : 'En planification'}
+                                </span>
+                            </div>
+                            <div class="project-meta">
+                                <span><i class="fas fa-building"></i> ${project.client}</span>
+                                <span><i class="fas fa-calendar"></i> ${formatDate(project.endDate)}</span>
+                            </div>
+                        </div>
+                        <div class="project-body">
+                            <div class="progress-section">
+                                <div class="progress-header">
+                                    <span>Avancement</span>
+                                    <span>${project.progress}%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: ${project.progress}%"></div>
+                                </div>
+                            </div>
+                            <div class="task-stats">
+                                <span><i class="fas fa-tasks"></i> Tâches: ${project.tasks.filter(t => t.done).length}/${project.tasks.length}</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Rendu équipes
+        function renderTeams() {
+            const grid = document.getElementById('teamGrid');
+            const teams = [...new Set(teamMembers.map(m => m.team))];
+            grid.innerHTML = teams.map(team => `
+                <div class="team-card">
+                    <h3><i class="fas fa-users"></i> ${team}</h3>
+                    <div class="member-list">
+                        ${teamMembers.filter(m => m.team === team).map(member => `
+                            <div class="member-item">
+                                <div class="member-avatar">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div>
+                                    <div><strong>${member.name}</strong></div>
+                                    <div style="font-size: 0.8rem; color: var(--gray);">${member.specialty}</div>
+                                    <div style="font-size: 0.75rem; color: var(--success);">✅ ${member.tasksCompleted} tâches</div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Rendu planning
+        function renderCalendar() {
+            const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+            document.getElementById('currentMonthYear').innerText = `${monthNames[currentMonth]} ${currentYear}`;
+            
+            const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            
+            let calendarHTML = '';
+            const dayNames = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+            dayNames.forEach(day => {
+                calendarHTML += `<div class="calendar-day-header">${day}</div>`;
+            });
+            
+            let startOffset = firstDay === 0 ? 6 : firstDay - 1;
+            for (let i = 0; i < startOffset; i++) {
+                calendarHTML += `<div class="calendar-day"></div>`;
+            }
+            
+            const today = new Date().toISOString().split('T')[0];
+            
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayEvents = calendarEvents.filter(e => e.date === dateStr);
+                const isToday = dateStr === today;
+                
+                calendarHTML += `
+                    <div class="calendar-day ${isToday ? 'today' : ''}" onclick="addEventForDate('${dateStr}')">
+                        <div class="day-number">${day}</div>
+                        ${dayEvents.map(e => `<div class="event-badge">${e.title}</div>`).join('')}
+                    </div>
+                `;
+            }
+            
+            document.getElementById('calendarGrid').innerHTML = calendarHTML;
+        }
+
+        // Graphiques
+        function initCharts() {
+            const progressCtx = document.getElementById('progressChart')?.getContext('2d');
+            const statusCtx = document.getElementById('statusChart')?.getContext('2d');
+            const teamCtx = document.getElementById('teamPerformanceChart')?.getContext('2d');
+            
+            if (progressCtx) {
+                if (progressChart) progressChart.destroy();
+                progressChart = new Chart(progressCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: projects.map(p => p.name.substring(0, 20)),
+                        datasets: [{
+                            label: 'Progression (%)',
+                            data: projects.map(p => p.progress),
+                            backgroundColor: '#0066CC'
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: true }
+                });
+            }
+            
+            if (statusCtx) {
+                const statusCount = {
+                    'En cours': projects.filter(p => p.status === 'active').length,
+                    'Retardé': projects.filter(p => p.status === 'delayed').length,
+                    'Planification': projects.filter(p => p.status === 'planning').length
+                };
+                if (statusChart) statusChart.destroy();
+                statusChart = new Chart(statusCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(statusCount),
+                        datasets: [{
+                            data: Object.values(statusCount),
+                            backgroundColor: ['#10B981', '#F59E0B', '#0066CC']
+                        }]
+                    },
+                    options: { responsive: true }
+                });
+            }
+            
+            if (teamCtx) {
+                const teamPerformance = {};
+                teamMembers.forEach(m => {
+                    teamPerformance[m.team] = (teamPerformance[m.team] || 0) + m.tasksCompleted;
+                });
+                if (teamChart) teamChart.destroy();
+                teamChart = new Chart(teamCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(teamPerformance),
+                        datasets: [{
+                            label: 'Tâches complétées',
+                            data: Object.values(teamPerformance),
+                            backgroundColor: '#FF6B00'
+                        }]
+                    },
+                    options: { responsive: true }
+                });
+            }
+        }
+
+        // Navigation
+        function switchPage(pageId) {
+            document.querySelectorAll('.page').forEach(page => page.classList.remove('active-page'));
+            document.getElementById(`${pageId}Page`).classList.add('active-page');
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+            document.querySelector(`[data-page="${pageId}"]`).classList.add('active');
+            
+            if (pageId === 'projects') renderAllProjects();
+            if (pageId === 'teams') renderTeams();
+            if (pageId === 'planning') renderCalendar();
+            if (pageId === 'reports') initCharts();
+        }
+
+        // Gestion modals
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        window.showProjectDetails = (id) => {
+            const project = projects.find(p => p.id === id);
+            if (project) {
+                alert(`📋 ${project.name}\nClient: ${project.client}\nAvancement: ${project.progress}%\nTâches: ${project.tasks.filter(t => t.done).length}/${project.tasks.length}\nDescription: ${project.description}`);
+            }
+        };
+
+        window.addEventForDate = (date) => {
+            document.getElementById('eventDate').value = date;
+            document.getElementById('eventModal').classList.add('active');
+        };
+
+        // Event listeners
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', () => switchPage(item.getAttribute('data-page')));
+        });
+
+        document.getElementById('newProjectBtnDashboard')?.addEventListener('click', () => document.getElementById('projectModal').classList.add('active'));
+        document.getElementById('newProjectBtnProjects')?.addEventListener('click', () => document.getElementById('projectModal').classList.add('active'));
+        document.getElementById('viewAllProjectsBtn')?.addEventListener('click', () => switchPage('projects'));
+        document.getElementById('addEventBtn')?.addEventListener('click', () => document.getElementById('eventModal').classList.add('active'));
+        document.getElementById('addMemberBtn')?.addEventListener('click', () => document.getElementById('memberModal').classList.add('active'));
+        
+        document.getElementById('prevMonthBtn')?.addEventListener('click', () => {
+            currentMonth--;
+            if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+            renderCalendar();
+        });
+        
+        document.getElementById('nextMonthBtn')?.addEventListener('click', () => {
+            currentMonth++;
+            if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+            renderCalendar();
+        });
+        
+        // Formulaire projet
+        document.getElementById('projectForm')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newProject = {
+                id: projects.length + 1,
+                name: document.getElementById('projectName').value,
+                client: document.getElementById('projectClient').value,
+                startDate: document.getElementById('projectStart').value,
+                endDate: document.getElementById('projectEnd').value,
+                status: document.getElementById('projectStatus').value,
+                description: document.getElementById('projectDesc').value,
+                progress: 0,
+                tasks: [
+                    { name: "Analyse technique", done: false },
+                    { name: "Commande matériel", done: false },
+                    { name: "Installation", done: false },
+                    { name: "Mise en service", done: false }
+                ]
+            };
+            projects.push(newProject);
+            renderDashboard();
+            renderAllProjects();
+            addTimelineEvent(`Nouveau projet créé : ${newProject.name}`);
+            closeModal('projectModal');
+            document.getElementById('projectForm').reset();
+        });
+        
+        // Formulaire événement
+        document.getElementById('eventForm')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            calendarEvents.push({
+                date: document.getElementById('eventDate').value,
+                title: document.getElementById('eventTitle').value,
+                type: document.getElementById('eventType').value
+            });
+            renderCalendar();
+            addTimelineEvent(`Événement ajouté : ${document.getElementById('eventTitle').value}`);
+            closeModal('eventModal');
+            document.getElementById('eventForm').reset();
+        });
+        
+        // Formulaire membre
+        document.getElementById('memberForm')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            teamMembers.push({
+                id: teamMembers.length + 1,
+                name: document.getElementById('memberName').value,
+                specialty: document.getElementById('memberSpecialty').value,
+                team: document.getElementById('memberTeam').value,
+                tasksCompleted: 0
+            });
+            renderTeams();
+            addTimelineEvent(`Nouveau membre ajouté : ${document.getElementById('memberName').value}`);
+            closeModal('memberModal');
+            document.getElementById('memberForm').reset();
+        });
+        
+        // Export
+        document.getElementById('exportBtnDashboard')?.addEventListener('click', () => {
+            let csv = "Nom du projet,Client,Date début,Date fin,Statut,Progression\n";
+            projects.forEach(p => {
+                csv += `"${p.name}","${p.client}","${p.startDate}","${p.endDate}","${p.status}",${p.progress}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'projets_automatisme.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+            addTimelineEvent("Export CSV des projets effectué");
+        });
+        
+        document.getElementById('exportReportBtn')?.addEventListener('click', () => {
+            alert("Rapport exporté au format PDF (simulation)");
+            addTimelineEvent("Rapport d'activité exporté");
+        });
+        
+        // Initialisation
+        renderDashboard();
+        renderAllProjects();
+        renderTeams();
+        renderCalendar();
+        renderTimeline();
+        initCharts();
+    </script>
+</body>
+</html>
