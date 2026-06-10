@@ -2456,11 +2456,11 @@ function renderTableCommandes() {
         const factures = getFacturesByCommande(cmd.id);
         const datePVRD = calculerDatePVRD(cmd.date_signature_pvrp, cmd.garantie_mois);
         const pvrdDepasse = datePVRD && isDateDepassee(datePVRD) && cmd.pvrd_signe === 'non';
+        const retenue1Depasse = cmd.retenue_applicable && !cmd.retenue1_recuperee && cmd.date_recuperation_retenue1 && isDateDepassee(cmd.date_recuperation_retenue1);
+        const retenue2Depasse = cmd.retenue_applicable && !cmd.retenue2_recuperee && cmd.date_recuperation_retenue2 && isDateDepassee(cmd.date_recuperation_retenue2);
+        const pvrpRouge = cmd.materiel_livre === 'oui' && cmd.pvrp_signe === 'non';
         
-        // Récupérer les fournisseurs de cette commande (commande_fournisseurs)
-        const fournisseursCmd = cmd.commande_fournisseurs || [];
-        
-        // État commande
+        // État commande (en_cours ou cloture)
         let etatCommande = cmd.etat_commande || "en_cours";
         
         // Récupérer la division
@@ -2483,28 +2483,656 @@ function renderTableCommandes() {
             }
         }
         
-        // Si aucun fournisseur, afficher une ligne "Aucun fournisseur"
-        if (fournisseursCmd.length === 0) {
-            const tr = document.createElement("tr");
-            tr.className = etatCommande === "cloture" ? "row-cloture" : "row-en-cours";
-            renderLigneCommande(tr, cmd, null, 0, true, division, etatCommande, peutModifier, factures, datePVRD, pvrdDepasse);
-            tbody.appendChild(tr);
-        } 
-        // Pour chaque fournisseur, créer une ligne
-        else {
-            for (let idx = 0; idx < fournisseursCmd.length; idx++) {
-                const fournisseur = fournisseursCmd[idx];
-                const tr = document.createElement("tr");
-                tr.className = etatCommande === "cloture" ? "row-cloture" : "row-en-cours";
-                
-                // Ajouter une classe pour identifier le fournisseur
-                tr.setAttribute("data-fournisseur-idx", idx);
-                tr.setAttribute("data-commande-id", cmd.id);
-                
-                renderLigneCommande(tr, cmd, fournisseur, idx, idx === 0, division, etatCommande, peutModifier, factures, datePVRD, pvrdDepasse);
-                tbody.appendChild(tr);
-            }
+        const datePrevisionnelle = calculerDatePrevisionnelle(cmd.date_reception_accuse, cmd.delai_fournisseur_propose);
+        const delaiReel = calculerDelaiReel(cmd.date_reception_accuse, cmd);
+        const retardFournisseur = calculerRetardFournisseur(datePrevisionnelle, cmd);
+        const retardClient = calculerRetard(cmd.date_livraison_client, cmd.delai_client_reel);
+        const penaliteMontant = cmd.penalite_applicable ? calculerPenalite(cmd.montant_commande, cmd.penalite_pct, retardFournisseur) : 0;
+        
+        const tr = document.createElement("tr");
+        // Appliquer la classe de couleur à la ligne
+        tr.className = etatCommande === "cloture" ? "row-cloture" : "row-en-cours";
+        
+        // ========== COLONNE 1: N° Dossier ==========
+// ========== COLONNE 1: N° Dossier avec affichage date création au survol ==========
+const tdDossier = document.createElement("td");
+
+// Récupérer la date de création de la commande
+const dateCreation = cmd.date_creation_commande || cmd.created_at;
+let tooltipText = '';
+if (dateCreation) {
+    const dateObj = new Date(dateCreation);
+    tooltipText = `📅 Créée le ${dateObj.toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    })}`;
+}
+
+// Créer le lien
+const link = document.createElement("a");
+link.href = "#";
+link.className = "link-dossier";
+link.setAttribute("data-dossier-ref", cmd.dossier_ref);
+link.textContent = cmd.dossier_ref || '-';
+
+// Ajouter le tooltip si on a une date
+if (tooltipText) {
+    link.title = tooltipText;
+    link.style.cursor = "help";
+    link.style.borderBottom = "1px dotted #00529c";
+}
+
+tdDossier.appendChild(link);
+tr.appendChild(tdDossier);
+
+// ========== COLONNE 2: Dossier Achat ==========
+const tdDossierAchat = document.createElement("td");
+const inputAchat = document.createElement("input");
+inputAchat.type = "text";
+inputAchat.placeholder = "000/2024";
+inputAchat.value = cmd.dossier_achat || "";
+inputAchat.classList.add("input-smart");
+inputAchat.style.width = "100px";
+inputAchat.style.fontFamily = "monospace";
+inputAchat.disabled = !peutModifier;
+
+if (peutModifier) {
+    let timeoutId = null;
+    
+    inputAchat.oninput = (e) => {
+        // Nettoyer le timeout précédent
+        if (timeoutId) clearTimeout(timeoutId);
+        
+        // Changer la couleur pendant la saisie
+        const valeur = e.target.value;
+        if (validerFormatDossier(valeur)) {
+            inputAchat.style.borderColor = "#28a745";
+            inputAchat.style.backgroundColor = "#d4edda";
+        } else if (valeur !== "") {
+            inputAchat.style.borderColor = "#ffc107";
+            inputAchat.style.backgroundColor = "#fff3cd";
+        } else {
+            inputAchat.style.borderColor = "#dee2e6";
+            inputAchat.style.backgroundColor = "white";
         }
+        
+        // Attendre que l'utilisateur finisse de taper
+        timeoutId = setTimeout(() => {
+            const nouvelleValeur = inputAchat.value.trim();
+            
+            // Vérifier le format
+            if (nouvelleValeur !== "" && !validerFormatDossier(nouvelleValeur)) {
+                alert("❌ Format invalide ! Utilisez le format: 000/2024 (3 chiffres / 4 chiffres)");
+                inputAchat.style.borderColor = "#dc3545";
+                inputAchat.style.backgroundColor = "#f8d7da";
+                return;
+            }
+            
+            // Vérifier si existe déjà (juste avertissement, pas de blocage)
+            if (verifierDossierExistant(nouvelleValeur, cmd.id)) {
+                inputAchat.style.borderColor = "#ffc107";
+                inputAchat.style.backgroundColor = "#fff3cd";
+                // Avertissement non bloquant
+                const toast = document.createElement('div');
+                toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#ffc107;color:#003d75;padding:10px 15px;border-radius:8px;z-index:10000;font-size:0.75rem;';
+                toast.innerHTML = `⚠️ Attention: Le dossier achat "${nouvelleValeur}" existe déjà dans une autre commande !`;
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 3000);
+            } else {
+                inputAchat.style.borderColor = "#dee2e6";
+                inputAchat.style.backgroundColor = "white";
+            }
+            
+            // Sauvegarder
+            cmd.dossier_achat = nouvelleValeur;
+            sauvegarderCommande(cmd);
+        }, 800);
+    };
+}
+
+tdDossierAchat.appendChild(inputAchat);
+tr.appendChild(tdDossierAchat);
+
+// ========== COLONNE 3: Dossier Vente ==========
+const tdDossierVente = document.createElement("td");
+const inputVente = document.createElement("input");
+inputVente.type = "text";
+inputVente.placeholder = "000/2024";
+inputVente.value = cmd.dossier_vente || "";
+inputVente.classList.add("input-smart");
+inputVente.style.width = "100px";
+inputVente.style.fontFamily = "monospace";
+inputVente.disabled = !peutModifier;
+
+if (peutModifier) {
+    let timeoutIdVente = null;
+    
+    inputVente.oninput = (e) => {
+        if (timeoutIdVente) clearTimeout(timeoutIdVente);
+        
+        const valeur = e.target.value;
+        if (validerFormatDossier(valeur)) {
+            inputVente.style.borderColor = "#28a745";
+            inputVente.style.backgroundColor = "#d4edda";
+        } else if (valeur !== "") {
+            inputVente.style.borderColor = "#ffc107";
+            inputVente.style.backgroundColor = "#fff3cd";
+        } else {
+            inputVente.style.borderColor = "#dee2e6";
+            inputVente.style.backgroundColor = "white";
+        }
+        
+        timeoutIdVente = setTimeout(() => {
+            const nouvelleValeur = inputVente.value.trim();
+            
+            if (nouvelleValeur !== "" && !validerFormatDossier(nouvelleValeur)) {
+                alert("❌ Format invalide ! Utilisez le format: 000/2024 (3 chiffres / 4 chiffres)");
+                inputVente.style.borderColor = "#dc3545";
+                inputVente.style.backgroundColor = "#f8d7da";
+                return;
+            }
+            
+            if (verifierDossierVenteExistant(nouvelleValeur, cmd.id)) {
+                inputVente.style.borderColor = "#ffc107";
+                inputVente.style.backgroundColor = "#fff3cd";
+                const toast = document.createElement('div');
+                toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#ffc107;color:#003d75;padding:10px 15px;border-radius:8px;z-index:10000;font-size:0.75rem;';
+                toast.innerHTML = `⚠️ Attention: Le dossier vente "${nouvelleValeur}" existe déjà dans une autre commande !`;
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 3000);
+            } else {
+                inputVente.style.borderColor = "#dee2e6";
+                inputVente.style.backgroundColor = "white";
+            }
+            
+            cmd.dossier_vente = nouvelleValeur;
+            sauvegarderCommande(cmd);
+        }, 800);
+    };
+}
+
+tdDossierVente.appendChild(inputVente);
+tr.appendChild(tdDossierVente);
+        // ========== COLONNE 2: Division ==========
+        const tdDivision = document.createElement("td");
+        let divisionBadge = '';
+        switch(division) {
+            case "Projet": divisionBadge = '<span style="background:#17a2b8; color:white; padding:3px 8px; border-radius:20px;">Projet</span>'; break;
+            case "O&G": divisionBadge = '<span style="background:#fd7e14; color:white; padding:3px 8px; border-radius:20px;">O&G</span>'; break;
+            case "Water": divisionBadge = '<span style="background:#00b4d8; color:white; padding:3px 8px; border-radius:20px;">Water</span>'; break;
+            case "EPC": divisionBadge = '<span style="background:#20c997; color:white; padding:3px 8px; border-radius:20px;">EPC</span>'; break;
+            case "Industrie": divisionBadge = '<span style="background:#adb5bd; color:white; padding:3px 8px; border-radius:20px;">Industrie</span>'; break;
+            default: divisionBadge = '<span style="background:#6c757d; color:white; padding:3px 8px; border-radius:20px;">À définir</span>';
+        }
+        tdDivision.innerHTML = divisionBadge;
+        tr.appendChild(tdDivision);
+        
+        // ========== COLONNE 3: État Commande (LISTE DÉROULANTE) ==========
+        const tdEtat = document.createElement("td");
+        tdEtat.style.textAlign = "center";
+        
+        if (peutModifier) {
+            // Créer la liste déroulante
+            const select = document.createElement("select");
+            select.className = `etat-select ${etatCommande === "cloture" ? "cloture" : "en-cours"}`;
+            
+            // Option "En cours"
+            const optEnCours = document.createElement("option");
+            optEnCours.value = "en_cours";
+            optEnCours.textContent = "🟡 En cours";
+            if (etatCommande === "en_cours") optEnCours.selected = true;
+            
+            // Option "Clôturé"
+            const optCloture = document.createElement("option");
+            optCloture.value = "cloture";
+            optCloture.textContent = "✅ Clôturé";
+            if (etatCommande === "cloture") optCloture.selected = true;
+            
+            select.appendChild(optEnCours);
+            select.appendChild(optCloture);
+            
+            // Quand on change la valeur
+            select.onchange = (e) => {
+                const nouvelleValeur = e.target.value;
+                cmd.etat_commande = nouvelleValeur;
+                
+                // Changer la couleur du select
+                select.className = `etat-select ${nouvelleValeur === "cloture" ? "cloture" : "en-cours"}`;
+                
+                // Changer la couleur de la ligne
+                tr.className = nouvelleValeur === "cloture" ? "row-cloture" : "row-en-cours";
+                
+                // Sauvegarder dans la base
+                sauvegarderCommande(cmd);
+            };
+            
+            tdEtat.appendChild(select);
+        } else {
+            // Si pas le droit de modifier, afficher juste un badge
+            const badge = document.createElement("span");
+            badge.className = `etat-select ${etatCommande === "cloture" ? "cloture" : "en-cours"}`;
+            badge.textContent = etatCommande === "cloture" ? "✅ Clôturé" : "🟡 En cours";
+            badge.disabled = true;
+            tdEtat.appendChild(badge);
+        }
+        tr.appendChild(tdEtat);
+        
+        // ========== COLONNE 4: Client ==========
+        const tdClient = document.createElement("td");
+        tdClient.innerHTML = cmd.client || "-";
+        tr.appendChild(tdClient);
+        
+        // ========== COLONNE 5: Réf commande ==========
+        const tdRef = document.createElement("td");
+        tdRef.innerHTML = `<strong>${cmd.ref_commande || ''}</strong>`;
+        tr.appendChild(tdRef);
+        
+        // ========== COLONNE 6: Montant ==========
+        const tdMontant = document.createElement("td");
+        tdMontant.innerHTML = `${cmd.montant_commande || 0} ${cmd.devise_commande || '€'}`;
+        tr.appendChild(tdMontant);
+        
+        // ========== COLONNE 7: Commande Fournisseur ==========
+        const tdFournCmd = document.createElement("td");
+        let fournHtml = "";
+        if (cmd.commande_fournisseurs && cmd.commande_fournisseurs.length) {
+            cmd.commande_fournisseurs.forEach(f => {
+                fournHtml += `<div><strong>${f.nom || '-'}</strong> (${f.reference || '-'}) : ${f.montant || 0} ${f.devise || '€'}</div>`;
+            });
+        } else { fournHtml = "-"; }
+        tdFournCmd.innerHTML = fournHtml;
+        tr.appendChild(tdFournCmd);
+        
+        // ========== COLONNE 8: Marge ==========
+        const tdMarge = document.createElement("td");
+        tdMarge.innerHTML = `${cmd.marge_dossier || 0} ${cmd.marge_devise || '€'}`;
+        tr.appendChild(tdMarge);
+        
+        // ========== COLONNE 9: Commission ==========
+        const tdCommission = document.createElement("td");
+        tdCommission.innerHTML = `${cmd.commission_partenaire || 0} ${cmd.commission_devise || '€'}`;
+        tr.appendChild(tdCommission);
+        
+        // ========== COLONNE 10: Date envoi ==========
+        const tdEnvoi = document.createElement("td");
+        const inpEnvoi = document.createElement("input");
+        inpEnvoi.type = "date";
+        inpEnvoi.value = cmd.date_envoi_commande || "";
+        inpEnvoi.classList.add("input-smart");
+        inpEnvoi.disabled = !peutModifier;
+        if (peutModifier) {
+            inpEnvoi.onchange = (e) => { cmd.date_envoi_commande = e.target.value; sauvegarderCommande(cmd); };
+        }
+        tdEnvoi.appendChild(inpEnvoi);
+        tr.appendChild(tdEnvoi);
+        
+        // ========== COLONNE 11: Date réception accusé ==========
+        const tdAccuse = document.createElement("td");
+        const inpAccuse = document.createElement("input");
+        inpAccuse.type = "date";
+        inpAccuse.value = cmd.date_reception_accuse || "";
+        inpAccuse.classList.add("input-smart");
+        inpAccuse.disabled = !peutModifier;
+        if (peutModifier) {
+            inpAccuse.onchange = (e) => { 
+                cmd.date_reception_accuse = e.target.value;
+                if (cmd.delai_fournisseur_propose) {
+                    const nouvellePrevisionnelle = calculerDatePrevisionnelle(cmd.date_reception_accuse, cmd.delai_fournisseur_propose);
+                    if (nouvellePrevisionnelle) cmd.date_reception_previsionnelle = nouvellePrevisionnelle;
+                }
+                sauvegarderCommande(cmd);
+            };
+        }
+        tdAccuse.appendChild(inpAccuse);
+        tr.appendChild(tdAccuse);
+        
+        // ========== COLONNE 12: Livraison à ==========
+        const tdLivraisonA = document.createElement("td");
+        const selLivraisonA = document.createElement("select");
+        selLivraisonA.classList.add("select-smart");
+        selLivraisonA.disabled = !peutModifier;
+        ["STCCo", "Sofraico"].forEach(opt => {
+            const option = document.createElement("option");
+            option.value = opt;
+            option.textContent = opt === "STCCo" ? "STCCo" : "Sofraico";
+            if (cmd.livraison_a === opt) option.selected = true;
+            selLivraisonA.appendChild(option);
+        });
+        if (peutModifier) {
+            selLivraisonA.onchange = (e) => { 
+                cmd.livraison_a = e.target.value;
+                sauvegarderCommande(cmd);
+            };
+        }
+        tdLivraisonA.appendChild(selLivraisonA);
+        tr.appendChild(tdLivraisonA);
+        
+        // ========== COLONNE 13: Délai fournisseur ==========
+        const tdDelaiPropose = document.createElement("td");
+        const inpDelaiPropose = document.createElement("input");
+        inpDelaiPropose.type = "number";
+        inpDelaiPropose.value = cmd.delai_fournisseur_propose || "";
+        inpDelaiPropose.placeholder = "Jours";
+        inpDelaiPropose.classList.add("input-smart");
+        inpDelaiPropose.style.width = "70px";
+        inpDelaiPropose.disabled = !peutModifier;
+        if (peutModifier) {
+            inpDelaiPropose.onchange = (e) => {
+                cmd.delai_fournisseur_propose = parseInt(e.target.value) || 0;
+                const nouvellePrevisionnelle = calculerDatePrevisionnelle(cmd.date_reception_accuse, cmd.delai_fournisseur_propose);
+                if (nouvellePrevisionnelle) cmd.date_reception_previsionnelle = nouvellePrevisionnelle;
+                sauvegarderCommande(cmd);
+            };
+        }
+        tdDelaiPropose.appendChild(inpDelaiPropose);
+        tr.appendChild(tdDelaiPropose);
+        
+        // ========== COLONNE 14: Date réception prévisionnelle ==========
+        const tdPrevisionnelle = document.createElement("td");
+        tdPrevisionnelle.innerHTML = datePrevisionnelle || "-";
+        tr.appendChild(tdPrevisionnelle);
+        
+        // ========== COLONNE 15: Date réception Sofraico ==========
+        const tdSofraico = document.createElement("td");
+        const inpSofraico = document.createElement("input");
+        inpSofraico.type = "date";
+        inpSofraico.value = cmd.date_reception_sofraico || "";
+        inpSofraico.classList.add("input-smart");
+        inpSofraico.disabled = !peutModifier;
+        if (peutModifier) {
+            inpSofraico.onchange = (e) => { 
+                cmd.date_reception_sofraico = e.target.value;
+                sauvegarderCommande(cmd);
+            };
+        }
+        tdSofraico.appendChild(inpSofraico);
+        tr.appendChild(tdSofraico);
+        
+        // ========== COLONNE 16: Date réception STC Co ==========
+        const tdSTCCo = document.createElement("td");
+        const inpSTCCo = document.createElement("input");
+        inpSTCCo.type = "date";
+        inpSTCCo.value = cmd.date_reception_stcco || "";
+        inpSTCCo.classList.add("input-smart");
+        inpSTCCo.disabled = !peutModifier;
+        if (peutModifier) {
+            inpSTCCo.onchange = (e) => { 
+                cmd.date_reception_stcco = e.target.value;
+                sauvegarderCommande(cmd);
+            };
+        }
+        tdSTCCo.appendChild(inpSTCCo);
+        tr.appendChild(tdSTCCo);
+        
+        // ========== COLONNE 17: Délai réel ==========
+        const tdDelaiReel = document.createElement("td");
+        tdDelaiReel.innerHTML = (delaiReel !== null && delaiReel !== undefined) ? `${delaiReel} j` : "-";
+        if (delaiReel > 0) tdDelaiReel.style.color = "#dc3545";
+        tr.appendChild(tdDelaiReel);
+        
+        // ========== COLONNE 18: Retard fournisseur ==========
+        const tdRetardFourn = document.createElement("td");
+        if (retardFournisseur > 0) {
+            tdRetardFourn.innerHTML = `<span style="color:#dc3545;">${retardFournisseur} j</span>`;
+        } else if (retardFournisseur === 0) {
+            tdRetardFourn.innerHTML = `<span style="color:#28a745;">✓</span>`;
+        } else {
+            tdRetardFourn.innerHTML = "-";
+        }
+        tr.appendChild(tdRetardFourn);
+        
+        // ========== COLONNE 19: Règlement Fournisseur ==========
+        const tdReglFournisseur = document.createElement("td");
+        const selReglFournisseur = document.createElement("select");
+        selReglFournisseur.classList.add("select-smart");
+        selReglFournisseur.disabled = !peutModifier;
+        ["non", "partiel", "oui"].forEach(opt => {
+            const option = document.createElement("option");
+            option.value = opt;
+            option.textContent = opt === "non" ? "❌ Non" : (opt === "partiel" ? "🟡 Partiel" : "✅ Oui");
+            if (cmd.reglement_fournisseur === opt) option.selected = true;
+            selReglFournisseur.appendChild(option);
+        });
+        if (peutModifier) {
+            selReglFournisseur.onchange = (e) => { cmd.reglement_fournisseur = e.target.value; sauvegarderCommande(cmd); };
+        }
+        tdReglFournisseur.appendChild(selReglFournisseur);
+        tr.appendChild(tdReglFournisseur);
+        
+        // ========== COLONNE 20: Règlement Sofraico ==========
+        const tdReglSofraico = document.createElement("td");
+        const selReglSofraico = document.createElement("select");
+        selReglSofraico.classList.add("select-smart");
+        selReglSofraico.disabled = !peutModifier;
+        ["non", "partiel", "oui"].forEach(opt => {
+            const option = document.createElement("option");
+            option.value = opt;
+            option.textContent = opt === "non" ? "❌ Non" : (opt === "partiel" ? "🟡 Partiel" : "✅ Oui");
+            if (cmd.reglement_sofraico === opt) option.selected = true;
+            selReglSofraico.appendChild(option);
+        });
+        if (peutModifier) {
+            selReglSofraico.onchange = (e) => { cmd.reglement_sofraico = e.target.value; sauvegarderCommande(cmd); };
+        }
+        tdReglSofraico.appendChild(selReglSofraico);
+        tr.appendChild(tdReglSofraico);
+        
+        // ========== COLONNE 21: Délai client ==========
+        const tdDelaiClient = document.createElement("td");
+        const inpDelaiClient = document.createElement("input");
+        inpDelaiClient.type = "date";
+        inpDelaiClient.value = cmd.date_livraison_client || "";
+        inpDelaiClient.classList.add("input-smart");
+        inpDelaiClient.disabled = !peutModifier;
+        if (peutModifier) {
+            inpDelaiClient.onchange = (e) => { cmd.date_livraison_client = e.target.value; sauvegarderCommande(cmd); };
+        }
+        tdDelaiClient.appendChild(inpDelaiClient);
+        tr.appendChild(tdDelaiClient);
+        
+        // ========== COLONNE 22: Délai client réel ==========
+        const tdDelaiClientReel = document.createElement("td");
+        const inpDelaiClientReel = document.createElement("input");
+        inpDelaiClientReel.type = "date";
+        inpDelaiClientReel.value = cmd.delai_client_reel || "";
+        inpDelaiClientReel.classList.add("input-smart");
+        inpDelaiClientReel.disabled = !peutModifier;
+        if (peutModifier) {
+            inpDelaiClientReel.onchange = (e) => { cmd.delai_client_reel = e.target.value; sauvegarderCommande(cmd); };
+        }
+        tdDelaiClientReel.appendChild(inpDelaiClientReel);
+        tr.appendChild(tdDelaiClientReel);
+        
+        // ========== COLONNE 23: Retard client ==========
+        const tdRetardClient = document.createElement("td");
+        if (retardClient > 0) {
+            tdRetardClient.innerHTML = `<span style="color:#dc3545;">${retardClient} j</span>`;
+        } else if (retardClient === 0) {
+            tdRetardClient.innerHTML = `0 j`;
+        } else {
+            tdRetardClient.innerHTML = "-";
+        }
+        tr.appendChild(tdRetardClient);
+        
+        // ========== COLONNE 24: Matériel livré ==========
+        const tdMateriel = document.createElement("td");
+        const selMateriel = document.createElement("select");
+        selMateriel.classList.add("select-smart");
+        selMateriel.disabled = !peutModifier;
+        ["non", "oui", "partiel"].forEach(opt => {
+            const option = document.createElement("option");
+            option.value = opt;
+            option.textContent = opt === "non" ? "❌ Non" : (opt === "oui" ? "✅ Oui" : "🟡 Partiel");
+            if (cmd.materiel_livre === opt) option.selected = true;
+            selMateriel.appendChild(option);
+        });
+        if (peutModifier) {
+            selMateriel.onchange = (e) => { cmd.materiel_livre = e.target.value; sauvegarderCommande(cmd); };
+        }
+        tdMateriel.appendChild(selMateriel);
+        tr.appendChild(tdMateriel);
+        
+        // ========== COLONNE 25: Pénalité ==========
+        const tdPenalite = document.createElement("td");
+        tdPenalite.innerHTML = `
+            <input type="checkbox" class="checkbox-smart" ${cmd.penalite_applicable ? 'checked' : ''} ${!peutModifier ? 'disabled' : ''} onchange="window.updatePenaliteAppl(${cmd.id}, this.checked)">
+            <input type="number" class="input-smart" value="${cmd.penalite_pct || 0}" style="width:50px;" ${!peutModifier ? 'disabled' : ''} onchange="window.updatePenalitePct(${cmd.id}, this.value)"> %
+        `;
+        tr.appendChild(tdPenalite);
+        
+        // ========== COLONNE 26: PVRP ==========
+        const tdPVRP = document.createElement("td");
+        const selPVRP = document.createElement("select");
+        selPVRP.classList.add("select-smart");
+        selPVRP.disabled = !peutModifier;
+        ["non", "oui", "pas de pv"].forEach(opt => {
+            const option = document.createElement("option");
+            option.value = opt;
+            option.textContent = opt === "non" ? "❌ Non" : (opt === "oui" ? "✅ Oui" : "📄 Pas de PV");
+            if (cmd.pvrp_signe === opt) option.selected = true;
+            selPVRP.appendChild(option);
+        });
+        if (peutModifier) {
+            selPVRP.onchange = (e) => { cmd.pvrp_signe = e.target.value; sauvegarderCommande(cmd); };
+        }
+        tdPVRP.appendChild(selPVRP);
+        tr.appendChild(tdPVRP);
+        
+        // ========== COLONNE 27: Date PVRP ==========
+        const tdDatePVRP = document.createElement("td");
+        const inpDatePVRP = document.createElement("input");
+        inpDatePVRP.type = "date";
+        inpDatePVRP.value = cmd.date_signature_pvrp || "";
+        inpDatePVRP.classList.add("input-smart");
+        inpDatePVRP.disabled = !peutModifier;
+        if (peutModifier) {
+            inpDatePVRP.onchange = (e) => {
+                cmd.date_signature_pvrp = e.target.value;
+                const newPVRD = calculerDatePVRD(cmd.date_signature_pvrp, cmd.garantie_mois);
+                if (newPVRD) cmd.date_signature_pvrd = newPVRD;
+                sauvegarderCommande(cmd);
+            };
+        }
+        tdDatePVRP.appendChild(inpDatePVRP);
+        tr.appendChild(tdDatePVRP);
+        
+        // ========== COLONNE 28: Garantie ==========
+        const tdGarantie = document.createElement("td");
+        const inpGarantie = document.createElement("input");
+        inpGarantie.type = "number";
+        inpGarantie.value = cmd.garantie_mois || 0;
+        inpGarantie.classList.add("input-smart");
+        inpGarantie.style.width = "60px";
+        inpGarantie.disabled = !peutModifier;
+        if (peutModifier) {
+            inpGarantie.onchange = (e) => {
+                cmd.garantie_mois = parseInt(e.target.value) || 0;
+                const newPVRD = calculerDatePVRD(cmd.date_signature_pvrp, cmd.garantie_mois);
+                if (newPVRD) cmd.date_signature_pvrd = newPVRD;
+                sauvegarderCommande(cmd);
+            };
+        }
+        tdGarantie.appendChild(inpGarantie);
+        tr.appendChild(tdGarantie);
+        
+        // ========== COLONNE 29: Date PVRD ==========
+        const tdDatePVRD = document.createElement("td");
+        tdDatePVRD.innerHTML = datePVRD || "-";
+        if (pvrdDepasse) tdDatePVRD.style.backgroundColor = "#f8d7da";
+        tr.appendChild(tdDatePVRD);
+        
+        // ========== COLONNE 30: PVRD ==========
+        const tdPVRD = document.createElement("td");
+        const selPVRD = document.createElement("select");
+        selPVRD.classList.add("select-smart");
+        selPVRD.disabled = !peutModifier;
+        ["non", "oui", "pas de pvrd"].forEach(opt => {
+            const option = document.createElement("option");
+            option.value = opt;
+            option.textContent = opt === "non" ? "❌ Non" : (opt === "oui" ? "✅ Oui" : "📄 Pas de PVRD");
+            if (cmd.pvrd_signe === opt) option.selected = true;
+            selPVRD.appendChild(option);
+        });
+        if (peutModifier) {
+            selPVRD.onchange = (e) => { cmd.pvrd_signe = e.target.value; sauvegarderCommande(cmd); };
+        }
+        tdPVRD.appendChild(selPVRD);
+        tr.appendChild(tdPVRD);
+        
+        // ========== COLONNE 31: Caution ==========
+        const tdCaution = document.createElement("td");
+        tdCaution.innerHTML = `
+            <input type="checkbox" ${cmd.caution_applicable ? 'checked' : ''} ${!peutModifier ? 'disabled' : ''} onchange="window.updateCautionAppl(${cmd.id}, this.checked)">
+            <input type="number" class="input-smart" value="${cmd.caution_montant || 0}" style="width:70px;" ${!peutModifier ? 'disabled' : ''} onchange="window.updateCautionMt(${cmd.id}, this.value)">
+            <select class="select-smart" style="width:50px;" ${!peutModifier ? 'disabled' : ''} onchange="window.updateCautionDev(${cmd.id}, this.value)">${devisesList.map(d => `<option value="${d}" ${cmd.caution_devise === d ? 'selected' : ''}>${d}</option>`).join('')}</select>
+        `;
+        tr.appendChild(tdCaution);
+        
+        // ========== COLONNE 32: Retenue ==========
+        const tdRetenue = document.createElement("td");
+        tdRetenue.innerHTML = `
+            <input type="checkbox" ${cmd.retenue_applicable ? 'checked' : ''} ${!peutModifier ? 'disabled' : ''} onchange="window.updateRetenueAppl(${cmd.id}, this.checked)">
+            <input type="number" class="input-smart" value="${cmd.retenue_montant || 0}" style="width:70px;" ${!peutModifier ? 'disabled' : ''} onchange="window.updateRetenueMt(${cmd.id}, this.value)">
+        `;
+        tr.appendChild(tdRetenue);
+        
+        // ========== COLONNE 33: Retenue 1 ==========
+        const tdRet1 = document.createElement("td");
+        tdRet1.innerHTML = `
+            <select class="select-smart" ${!peutModifier ? 'disabled' : ''} onchange="window.updateRetenue1Rec(${cmd.id}, this.value)">
+                <option value="false" ${!cmd.retenue1_recuperee ? 'selected' : ''}>❌ Non</option>
+                <option value="true" ${cmd.retenue1_recuperee ? 'selected' : ''}>✅ Oui</option>
+            </select>
+        `;
+        tr.appendChild(tdRet1);
+        
+        // ========== COLONNE 34: Retenue 2 ==========
+        const tdRet2 = document.createElement("td");
+        tdRet2.innerHTML = `
+            <select class="select-smart" ${!peutModifier ? 'disabled' : ''} onchange="window.updateRetenue2Rec(${cmd.id}, this.value)">
+                <option value="false" ${!cmd.retenue2_recuperee ? 'selected' : ''}>❌ Non</option>
+                <option value="true" ${cmd.retenue2_recuperee ? 'selected' : ''}>✅ Oui</option>
+            </select>
+        `;
+        tr.appendChild(tdRet2);
+        
+        // ========== COLONNE 35: Factures ==========
+        const tdFactures = document.createElement("td");
+        let facturesHtml = "";
+        factures.forEach(f => {
+            facturesHtml += `<div style="font-size:0.7rem; margin-bottom:5px;">
+                <strong>${f.numero_facture || 'N°'}</strong>: ${f.montant_ht || 0} ${f.devise || '€'}
+                <select class="select-smart" style="width:80px;" ${!peutModifier ? 'disabled' : ''} onchange="window.updateFactureEtat(${f.id}, this.value)">
+                    <option value="non regle" ${f.etat_reglement === 'non regle' ? 'selected' : ''}>❌ Non</option>
+                    <option value="partiel" ${f.etat_reglement === 'partiel' ? 'selected' : ''}>🟡 Partiel</option>
+                    <option value="regle" ${f.etat_reglement === 'regle' ? 'selected' : ''}>✅ Oui</option>
+                </select>
+            </div>`;
+        });
+        if (peutModifier) {
+            facturesHtml += `<button class="btn-icon" onclick="window.ajouterFactureModal(${cmd.id})"><i class="fas fa-plus"></i></button>`;
+        }
+        tdFactures.innerHTML = facturesHtml;
+        tr.appendChild(tdFactures);
+        
+        // ========== COLONNE 36: Remarque ==========
+        const tdRemarque = document.createElement("td");
+        const txtRemarque = document.createElement("textarea");
+        txtRemarque.value = cmd.remarque || "";
+        txtRemarque.classList.add("input-smart");
+        txtRemarque.style.width = "150px";
+        txtRemarque.style.height = "40px";
+        txtRemarque.disabled = !peutModifier;
+        if (peutModifier) {
+            txtRemarque.onchange = (e) => { cmd.remarque = e.target.value; sauvegarderCommande(cmd); };
+        }
+        tdRemarque.appendChild(txtRemarque);
+        tr.appendChild(tdRemarque);
+        
+        tbody.appendChild(tr);
     }
     
     // Gestion des clics sur les liens dossier
