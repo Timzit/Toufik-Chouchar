@@ -671,7 +671,7 @@
         </div>
       </div>
       <div class="floating-badge">
-        <i class="fas fa-star-of-life"></i> مرشح رقم 04 · القائمة رقم 2
+        <i class="fas fa-star-of-life"></i> القائمة رقم 2
         <i class="fas fa-star-of-life"></i>
       </div>
     </div>
@@ -843,7 +843,7 @@
   function typeWriter() {
     const currentText = bioTexts[textIndex];
     
-    if (!isDeleting && charIndex <= currentText.len.gth) {
+    if (!isDeleting && charIndex <= currentText.length) {
       typedElement.textContent = currentText.substring(0, charIndex);
       charIndex++;
       setTimeout(typeWriter, 60);
